@@ -49,8 +49,9 @@ def plot_robot(ax, positions,T):
         
         # Plot the end effector position
         end_effector_position = positions[-1]
-        ax.scatter(end_effector_position[0], end_effector_position[1], end_effector_position[2], color='green',  
-                   label=f'Pos : ({end_effector_position[0]:.2f}, {end_effector_position[1]:.2f},{end_effector_position[2]:.2f})\nOri : ({Orientaion[2]:.2f},{Orientaion[0]:.2f},{Orientaion[1]:.2f})')  # End effector position
+        print(end_effector_position)
+        ax.scatter(end_effector_position[0], end_effector_position[1], end_effector_position[2], color='green')
+                   #label=f'Pos : ({end_effector_position[0]:.2f}, {end_effector_position[1]:.2f},{end_effector_position[2]:.2f})\nOri : ({Orientaion[2]:.2f},{Orientaion[0]:.2f},{Orientaion[1]:.2f})')  # End effector position
         ax.legend()
     # Set limits and labels
     ax.set_xlim([-1, 1])
