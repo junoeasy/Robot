@@ -28,8 +28,6 @@ def check_singularity(J):
     return abs(det_J) < 1e-6, det_J  # 행렬식이 0에 가까운 경우
 
 
-
-
 def plot_robot(ax, positions):
     ax.cla()  # Clear the axes for new plotting
     if positions:  # Check if positions list is not empty
@@ -40,7 +38,6 @@ def plot_robot(ax, positions):
         end_effector_position = positions[-1]
         ax.scatter(end_effector_position[0], end_effector_position[1], color='green',label="End effector" ,zorder=3)
         ax.legend()
-        
     # Set limits and labels
     ax.set_xlim([-2, 2])
     ax.set_ylim([-2, 2])
@@ -48,7 +45,6 @@ def plot_robot(ax, positions):
     ax.set_yticks(np.arange(-2, 2.1, 0.5))  # Y축 눈금 간격을 0.5로 설정
     ax.grid(True)
     plt.draw()  # Redraw the plot
-    
     
     
 def plot_bar_chart(ax_bar,theta):
@@ -65,7 +61,6 @@ def plot_bar_chart(ax_bar,theta):
     ax_bar.set_ylabel("det_Jacobian")
     ax_bar.set_title("Singularity Determinant")
     ax2.legend()
-    
     
     
 def update(val):
