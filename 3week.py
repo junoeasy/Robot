@@ -84,7 +84,7 @@ theta = np.radians(theta_degrees)
 positions = forward_kinematics(theta[0],theta[1])  
 fig = plt.figure(figsize=(5, 8)) 
 ax = fig.add_subplot(211)
-ax2 = fig.add_subplot(212)  # 2D 서브플롯 추가
+ax2 = fig.add_subplot(212) 
 # Initial plotting
 plot_robot(ax, positions)
 plot_bar_chart(ax2,theta)
