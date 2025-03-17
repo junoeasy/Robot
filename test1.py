@@ -1,108 +1,97 @@
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
+from mpl_toolkits.mplot3d import Axes3D
 
-def dh_transform(theta, d, a, alpha):
-    """Create the transformation matrix based on DH parameters."""
-    return np.array([
-        [np.cos(theta), -np.sin(theta) * np.cos(alpha),  np.sin(theta) * np.sin(alpha), a * np.cos(theta)],
-        [np.sin(theta),  np.cos(theta) * np.cos(alpha), -np.cos(theta) * np.sin(alpha), a * np.sin(theta)],
-        [0,              np.sin(alpha),                   np.cos(alpha),                  d],
-        [0,              0,                                  0,                             1]
-    ])
+# 링크의 길이
+a1 = 1.0  # 첫 번째 링크 길이
+a2 = 1.0  # 두 번째 링크 길이
 
-def forward_kinematics(theta_list, a, d, alpha):
-    """Calculate the forward kinematics to get end effector position."""
-    T = np.eye(4)
-    positions = []
-    for i in range(len(theta_list)):
-        T_i = dh_transform(theta_list[i], d[i], a[i], alpha[i])
-        T = T @ T_i  # Combine transformations
-        positions.append(T[:3, 3])  # Append the position of the end effector
-    return T, positions
+def forward_kinematics(theta1, theta2):
+    """엔드 이펙터의 위치 계산"""
+    x1 = a1 * np.cos(theta1)        # 첫 번째 링크 끝 위치
+    y1 = a1 * np.sin(theta1)
+    x2 = x1 + a2 * np.cos(theta1 + theta2)  # 두 번째 링크 끝 위치
+    y2 = y1 + a2 * np.sin(theta1 + theta2)
+    return np.array([x1, y1]), np.array([x2, y2])  # 첫 번째 조인트와 엔드 이펙터 위치 반환
 
-def rotation_matrix_to_euler_angles(R):
-    # (pitch, y축 회전)
-    pitch = np.arctan2(-R[2, 0], np.sqrt(R[0, 0]**2 + R[1, 0]**2))
-    # (yaw, z축 회전)
-    yaw = np.arctan2(R[1, 0], R[0, 0])
-    # (roll, x축 회전)
-    roll = np.arctan2(R[2, 1], R[2, 2])
-    return np.degrees(pitch), np.degrees(yaw), np.degrees(roll)
+def jacobian(theta1, theta2):
+    """자코비안 계산"""
+    j11 = -a1 * np.sin(theta1) - a2 * np.sin(theta1 + theta2)
+    j12 = -a2 * np.sin(theta1 + theta2)
+    j21 = a1 * np.cos(theta1) + a2 * np.cos(theta1 + theta2)
+    j22 = a2 * np.cos(theta1 + theta2)
+    return np.array([[j11, j12], [j21, j22]])
 
-def plot_robot(ax, positions,T):
-    """Plot the robot arm based on the given positions."""
-    ax.cla()  # Clear the axes for new plotting
+def check_singularity(J):
+    """특이점 확인"""
+    det_J = np.linalg.det(J)
+    return abs(det_J) < 1e-6, det_J  # 행렬식이 0에 가까운 경우
+
+# 시뮬레이션을 위한 초기 설정
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10))
+ax1.set_xlim(-2, 2)
+ax1.set_ylim(-2, 2)
+ax1.set_aspect('equal')
+ax1.grid()
+ax1.set_title("Robot Arm")
+ax1.set_xlabel("X-axis")
+ax1.set_ylabel("Y-axis")
+
+# 슬라이더를 위한 축 설정
+slider_ax1 = plt.axes([0.3, 0.58, 0.5, 0.03])  # 슬라이더 1 (theta1)
+slider_ax2 = plt.axes([0.3, 0.55, 0.5, 0.03])  # 슬라이더 2 (theta2)
+
+# 슬라이더 초기화
+theta1_slider = Slider(slider_ax1, 'Theta 1', -np.pi, np.pi, valinit=0.0)
+theta2_slider = Slider(slider_ax2, 'Theta 2', -np.pi, np.pi, valinit=0.0)
+
+def draw_robot(theta1, theta2):
+    """로봇 팔 그리기"""
+    ax1.clear()
+    ax1.set_xlim(-2, 2)
+    ax1.set_ylim(-2, 2)
+    ax1.set_aspect('equal')
+    ax1.grid()
     
-    R=T[:3,:3]
-    Orientaion=rotation_matrix_to_euler_angles(R)
-    
-    if positions:  # Check if positions list is not empty
-        # Start plotting the robot arm
-        ax.plot([0, positions[0][0]], [0, positions[0][1]], [0, positions[0][2]], 'ro-')  # Joint 0
-        for i in range(len(positions) - 1):
-            ax.plot([positions[i][0], positions[i + 1][0]], 
-                    [positions[i][1], positions[i + 1][1]], 
-                    [positions[i][2], positions[i + 1][2]], 'bo-')  # Links between joints
-        
-        # Plot the end effector position
-        end_effector_position = positions[-1]
-        ax.scatter(end_effector_position[0], end_effector_position[1], end_effector_position[2], color='green',  
-                   label=f'Pos : ({end_effector_position[0]:.2f}, {end_effector_position[1]:.2f},{end_effector_position[2]:.2f})\nOri : ({Orientaion[2]:.2f},{Orientaion[0]:.2f},{Orientaion[1]:.2f})')  # End effector position
-        ax.legend()
-    # Set limits and labels
-    ax.set_xlim([-1, 1])
-    ax.set_ylim([-1, 1])
-    ax.set_zlim([0, 1.5])
-    ax.set_xlabel('X-axis')
-    ax.set_ylabel('Y-axis')
-    ax.set_zlabel('Z-axis')
-    ax.set_title('3D Visualization of Robotic Arm')
-    
-    plt.grid()
-    plt.draw()  # Redraw the plot
+    joint1 = np.array([0, 0])
+    joint2, end_effector = forward_kinematics(theta1, theta2)
 
+    # 링크를 그리기
+    ax1.plot([joint1[0], joint2[0]], [joint1[1], joint2[1]], 'ro-', label='Link 1')  # 첫 번째 링크
+    ax1.plot([joint2[0], end_effector[0]], [joint2[1], end_effector[1]], 'bo-', label='Link 2')  # 두 번째 링크
+    ax1.plot(end_effector[0], end_effector[1], 'go', label='End Effector')  # 엔드 이펙터
+    ax1.legend()
+
+    # 자코비안 계산
+    J = jacobian(theta1, theta2)
+    singular, det_J = check_singularity(J)
     
+    # 행렬식 값 시각화
+    ax2.clear()
+    ax2.bar(['det(J)'], [det_J], color='red' if singular else 'green')
+    ax2.set_title("Singularity Determinant")
+    ax2.set_ylabel("det_Jacobian")
+    ax2.set_ylim(-1, 1)  # 행렬식의 범위 설정
+    ax2.axhline(0, color='black', lw=1)  # y=0 선 추가
+
+    # 특이점 여부 출력
+    if singular:
+        ax2.text(0, det_J + 0.1, 'Singularity!', color='red', ha='center')
+
+# 슬라이더 값 변경 시 로봇을 업데이트하는 함수
 def update(val):
-    """Update the robot plot based on the slider values."""
-    # Update joint angles from sliders
-    for i in range(6):
-        theta_degrees[i] = sliders[i].val  # Access each slider's value from the list
+    theta1 = theta1_slider.val
+    theta2 = theta2_slider.val
+    draw_robot(theta1, theta2)
 
-    # Convert degrees to radians for calculations
-    theta = np.radians(theta_degrees)
+# 슬라이더 이벤트 연결
+theta1_slider.on_changed(update)
+theta2_slider.on_changed(update)
 
-    # Calculate Forward Kinematics
-    T, positions = forward_kinematics(theta, a, d, alpha)
-    print(positions)
-    # Update the plot
-    plot_robot(ax, positions,T)
+# 초기 로봇 그림
+draw_robot(0.0, 0.0)
 
-# UR5 DH Parameters
-theta_degrees = np.array([0, 0, 0, 0, 0, 0])  # Joint angles (initially set to 0 in degrees)
-a = np.array([0, -0.425, -0.392, 0, 0, 0])  # Length of the common normal (a values)
-d = np.array([0.089, 0, 0, 0.109, 0.095, 0.082])  # Offset along the z-axis (d values)
-alpha = np.array([np.pi / 2, 0, 0, np.pi / 2, -np.pi / 2, 0])  # Link twist angles (alpha values)
-
-# Create initial plot
-theta = np.radians(theta_degrees)  # Ensure the initial angles are in radians
-T, positions = forward_kinematics(theta, a, d, alpha)  # Calculate initial positions
-fig = plt.figure(figsize=(8, 8))  # Adjust figure size
-ax = fig.add_subplot(211, projection='3d')
-
-# Initial plotting
-plot_robot(ax, positions,T)
-
-# ax = fig.add_subplot(212)
-# Create sliders for each joint angle
-sliders = []  # List to hold slider objects 
-slider_ax = [plt.axes([0.3, 0.2 + i * 0.05, 0.4, 0.03]) for i in range(6)]  # [left, bottom, width, height]Adjusted positioning of sliders
-for i in range(6):
-    slider = Slider(slider_ax[i], f'Theta {i + 1}', -180, 180, valinit=theta_degrees[i])
-    sliders.append(slider)  # Store slider in the list
-    slider.on_changed(update)  # Attach update function to slider changes
-plt.legend()
 plt.tight_layout()
 plt.show()
+
