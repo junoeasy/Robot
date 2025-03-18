@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
 # Load data from CSV
-data = pd.read_csv(r'C:\Users\junho\Desktop\robot/IMU_GPS_sensor_data.csv')
+data = pd.read_csv('data/IMU_GPS_sensor_data.csv')
 time = data['time'].values
 gps_x = data['gps_x'].values
 gps_y = data['gps_y'].values
@@ -60,7 +60,8 @@ def run_kalman_filter(process_variance, measurement_variance):
 
         estimates_x.append(float(kf.x[0, 0]))
         estimates_y.append(float(kf.x[1, 0]))
-    print(estimates_x[0],estimates_x[1],estimates_y[0],estimates_y[1])
+    print("x",estimates_x)
+    print("gps",gps_x)
     return estimates_x,estimates_y
         
         
